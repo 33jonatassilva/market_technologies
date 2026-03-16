@@ -9,7 +9,8 @@
 #### Mensageria: RabbitMQ e Kafka  
 - Documentação: [kafka/](kafka/) · [rabbitmq/](rabbitmq/)  
 - **[Comparativo Kafka vs RabbitMQ](COMPARATIVO-KAFKA-RABBITMQ.md)**
-#### Testes: TDD, Testes Unitários, testes de integração.
+#### Testes: TDD, Testes Unitários, testes de integração.  
+- Documentação: [testes/](testes/) — conceitos, tipos (unitário, integração, E2E), escopo, tecnologias .NET e exemplos em C#.
 #### Kubernetes
 #### Especialização em ferramentas de LOG do .NET: Serilog, OpenTelemetry
 
