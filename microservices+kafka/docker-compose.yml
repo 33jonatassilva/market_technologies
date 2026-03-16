@@ -1,0 +1,81 @@
+
+services:
+  kafka:
+    # Imagem oficial do Apache Kafka (disponível a partir da 3.7.0)
+    image: apache/kafka:4.2.0
+    hostname: kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      # KRaft mode — single node (sem Zookeeper)
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:29093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      # Listeners: CONTROLLER (KRaft), PLAINTEXT (clientes na rede Docker)
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_LISTENERS: "CONTROLLER://:29093,PLAINTEXT://:9092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      # Single node
+      CLUSTER_ID: "4L6g3nShT-eMCtK--X86sw"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 8
+      start_period: 20s
+
+  pedidos:
+    build: ./pedidos
+    container_name: pedidos
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - FLASK_PORT=5000
+    ports:
+      - "5001:5000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  estoque:
+    build: ./estoque
+    container_name: estoque
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - FLASK_PORT=5000
+    ports:
+      - "5002:5000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  pagamentos:
+    build: ./pagamentos
+    container_name: pagamentos
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - FLASK_PORT=5000
+    ports:
+      - "5003:5000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  notificacoes:
+    build: ./notificacoes
+    container_name: notificacoes
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - FLASK_PORT=5000
+    ports:
+      - "5004:5000"
+    depends_on:
+      kafka:
+        condition: service_healthy
