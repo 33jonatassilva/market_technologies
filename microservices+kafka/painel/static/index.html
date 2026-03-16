@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel — Sistema de Vendas (Microserviços + Kafka)</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="header">
+    <h1>Painel do Sistema de Vendas</h1>
+    <p class="subtitle">Microserviços + Kafka — visualização, pedidos e testes de falha</p>
+  </header>
+
+  <nav class="tabs">
+    <button type="button" class="tab active" data-tab="visao">Visão geral</button>
+    <button type="button" class="tab" data-tab="pedidos">Pedidos</button>
+    <button type="button" class="tab" data-tab="novo-pedido">Novo pedido</button>
+    <button type="button" class="tab" data-tab="controle">Controle de serviços</button>
+    <button type="button" class="tab" data-tab="cenarios">Cenários de teste</button>
+  </nav>
+
+  <main class="content">
+    <!-- Visão geral -->
+    <section id="visao" class="panel active">
+      <h2>Visão geral</h2>
+      <div class="cards" id="health-cards">
+        <p class="loading">Carregando status dos serviços…</p>
+      </div>
+      <div class="grid-2">
+        <div class="box">
+          <h3>Estoque</h3>
+          <pre id="estoque-resumo" class="pre-box">—</pre>
+        </div>
+        <div class="box">
+          <h3>Últimas notificações</h3>
+          <div id="notificacoes-resumo" class="pre-box">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lista de pedidos -->
+    <section id="pedidos" class="panel">
+      <h2>Pedidos</h2>
+      <div class="toolbar">
+        <button type="button" id="btn-refresh-pedidos">Atualizar lista</button>
+      </div>
+      <div id="pedidos-list" class="table-wrap">
+        <p class="loading">Carregando…</p>
+      </div>
+      <div id="pedido-detalhe" class="detalhe hidden"></div>
+    </section>
+
+    <!-- Novo pedido -->
+    <section id="novo-pedido" class="panel">
+      <h2>Novo pedido</h2>
+      <form id="form-pedido" class="form">
+        <label>
+          Cliente (customerId)
+          <input type="text" name="customerId" value="cli-1" placeholder="cli-1">
+        </label>
+        <fieldset>
+          <legend>Itens</legend>
+          <div id="itens-container">
+            <div class="item-row">
+              <input type="text" name="productId" placeholder="P1" value="P1">
+              <input type="number" name="quantity" placeholder="1" value="1" min="1">
+            </div>
+          </div>
+          <button type="button" id="btn-add-item">+ Adicionar item</button>
+        </fieldset>
+        <label>
+          Total (opcional; 0 = calculado no backend)
+          <input type="number" name="total" value="0" min="0" step="0.01">
+        </label>
+        <div class="form-actions">
+          <button type="submit">Criar pedido</button>
+        </div>
+      </form>
+      <div id="novo-pedido-result" class="result hidden"></div>
+    </section>
+
+    <!-- Controle de serviços -->
+    <section id="controle" class="panel">
+      <h2>Controle de serviços</h2>
+      <p class="hint">Ligar/desligar containers Docker (requer Docker disponível no host do painel).</p>
+      <div class="toolbar">
+        <button type="button" id="btn-refresh-control">Atualizar status</button>
+      </div>
+      <div id="control-cards" class="cards">
+        <p class="loading">Carregando…</p>
+      </div>
+    </section>
+
+    <!-- Cenários de teste -->
+    <section id="cenarios" class="panel">
+      <h2>Cenários de teste</h2>
+      <div class="box">
+        <h3>Simulação de rejeição de pagamento</h3>
+        <p>Quando ativada, o serviço de Pagamentos rejeita ~20% dos pedidos (aleatório). Use para ver pedidos em status "cancelado (pagamento_recusado)".</p>
+        <div class="toolbar">
+          <label><input type="checkbox" id="toggle-rejeicao"> Simular rejeição de pagamento</label>
+          <span id="config-status" class="muted"></span>
+        </div>
+      </div>
+      <div class="box">
+        <h3>Teste de idempotência (Estoque)</h3>
+        <p>O serviço de Estoque foi tornado idempotente: se o mesmo <code>orderId</code> for processado mais de uma vez (reprocessamento at-least-once), a reserva não é debitada duas vezes. Crie um pedido e, se quiser simular reprocessamento, desligue e ligue o Estoque após o pedido criado — ao religar, o consumer pode reprocessar mensagens; o estoque permanece consistente.</p>
+      </div>
+      <div class="box">
+        <h3>Falha de serviço</h3>
+        <p>Desligue um serviço (ex.: Notificações) na aba "Controle de serviços". Crie um pedido e acompanhe: o pedido pode ser confirmado, mas a notificação só aparece quando o serviço de Notificações for religado e processar as mensagens pendentes no Kafka.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>API proxy em <code>/api/*</code> — Pedidos, Estoque, Pagamentos, Notificações</p>
+  </footer>
+  <script src="/app.js"></script>
+</body>
+</html>
