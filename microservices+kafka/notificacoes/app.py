@@ -1,13 +1,16 @@
 """
-Serviço de Notificações: consome PedidoConfirmado de pedidos.confirmados
-e simula envio de e-mail/SMS (log em stdout).
+Serviço de Notificações: consome PedidoConfirmado de pedidos.confirmados,
+simula envio de e-mail/SMS (log em stdout). Buffer de notificações persistido em SQLite.
 """
 import json
 import logging
 import os
 import threading
+from datetime import datetime
 from flask import Flask, jsonify
 from kafka import KafkaConsumer
+
+from db import init_db, add_notification, get_notifications
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("notificacoes")
@@ -34,7 +37,8 @@ def consume_pedidos_confirmados():
             order_id = data.get("orderId")
             customer_id = data.get("customerId", "cliente")
             total = data.get("total", 0)
-            # Simula envio: log (em produção seria e-mail/SMS)
+            created_at = datetime.utcnow().isoformat() + "Z"
+            add_notification(order_id, customer_id, total, created_at)
             logger.info(
                 "[NOTIFICAÇÃO] Pedido confirmado - orderId=%s customerId=%s total=%s -> E-mail/SMS enviado (simulado)",
                 order_id,
@@ -50,7 +54,14 @@ def health():
     return jsonify({"status": "ok", "service": "notificacoes"}), 200
 
 
+@app.route("/notificacoes", methods=["GET"])
+def listar_notificacoes():
+    notifications = get_notifications()
+    return jsonify({"notifications": notifications}), 200
+
+
 def main():
+    init_db()
     t = threading.Thread(target=consume_pedidos_confirmados, daemon=True)
     t.start()
     port = int(os.environ.get("FLASK_PORT", 5000))

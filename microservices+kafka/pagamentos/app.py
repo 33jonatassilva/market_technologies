@@ -1,15 +1,18 @@
 """
 Serviço de Pagamentos: consome EstoqueReservado de estoque.reservado,
 simula processamento e publica PagamentoAprovado ou PagamentoRecusado em pagamentos.processados.
+Config (simularRejeicao) persistida em SQLite.
 """
 import json
 import logging
 import os
 import threading
 import random
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 from kafka import KafkaProducer, KafkaConsumer
 from kafka.errors import KafkaError
+
+from db import init_db, get_simular_rejeicao, set_simular_rejeicao
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("pagamentos")
@@ -20,8 +23,7 @@ KAFKA_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092").spli
 TOPIC_ESTOQUE_RESERVADO = "estoque.reservado"
 TOPIC_PAGAMENTOS_PROCESSADOS = "pagamentos.processados"
 
-# Para demonstração: ~80% aprovação (simula gateway)
-SIMULAR_REJEICAO = os.environ.get("PAGAMENTOS_SIMULAR_REJEICAO", "false").lower() == "true"
+_config_lock = threading.Lock()
 
 
 def get_producer():
@@ -50,8 +52,10 @@ def consume_estoque_reservado():
             order_id = data.get("orderId")
             if not order_id:
                 continue
-            # Simula processamento: aprovação aleatória se SIMULAR_REJEICAO, senão sempre aprova
-            approved = random.random() > 0.2 if SIMULAR_REJEICAO else True
+            simular = get_simular_rejeicao(
+                os.environ.get("PAGAMENTOS_SIMULAR_REJEICAO", "false").lower() == "true"
+            )
+            approved = random.random() > 0.2 if simular else True
             payload = {
                 "eventType": "PagamentoAprovado" if approved else "PagamentoRecusado",
                 "orderId": order_id,
@@ -69,7 +73,26 @@ def health():
     return jsonify({"status": "ok", "service": "pagamentos"}), 200
 
 
+@app.route("/config", methods=["GET"])
+def get_config():
+    default = os.environ.get("PAGAMENTOS_SIMULAR_REJEICAO", "false").lower() == "true"
+    simular = get_simular_rejeicao(default)
+    return jsonify({"simularRejeicao": simular}), 200
+
+
+@app.route("/config", methods=["POST"])
+def post_config():
+    body = request.get_json() or {}
+    if "simularRejeicao" in body:
+        value = bool(body["simularRejeicao"])
+        set_simular_rejeicao(value)
+        logger.info("Simulação de rejeição de pagamento: %s", value)
+    simular = get_simular_rejeicao(False)
+    return jsonify({"simularRejeicao": simular}), 200
+
+
 def main():
+    init_db()
     t = threading.Thread(target=consume_estoque_reservado, daemon=True)
     t.start()
     port = int(os.environ.get("FLASK_PORT", 5000))

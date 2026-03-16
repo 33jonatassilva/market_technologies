@@ -19,8 +19,13 @@ Isso sobe:
 - **Kafka** — imagem oficial [apache/kafka](https://hub.docker.com/r/apache/kafka) (modo KRaft, sem Zookeeper) na porta **9092**.
 - **Pedidos** — API REST na porta **5001**.
 - **Estoque** — API de saúde/consulta na porta **5002**.
-- **Pagamentos** — health na porta **5003**.
-- **Notificações** — health na porta **5004**.
+- **Pagamentos** — health e config na porta **5003**.
+- **Notificações** — health e listagem de notificações na porta **5004**.
+- **Painel** — interface web na porta **8080** (dashboard, criar pedidos, controle de serviços, cenários de teste).
+
+**Painel web:** abra [http://localhost:8080](http://localhost:8080) para visualizar o sistema, criar pedidos, ligar/desligar serviços e testar cenários de falha e idempotência.
+
+Se rodar o painel **fora do Docker** (ex.: `python painel/app.py` no host), ele detecta o ambiente e usa `localhost:5001`, `localhost:5002`, etc. para falar com os serviços. Se aparecer 503 na aba Pedidos, confira se os serviços estão acessíveis em suas portas (5001–5004) ou defina `PEDIDOS_URL`, `ESTOQUE_URL`, etc.
 
 O Kafka possui healthcheck; os serviços de aplicação só iniciam após o Kafka estar saudável. Na primeira subida, o Kafka pode levar cerca de 15–30 segundos para ficar pronto; se um serviço falhar ao conectar, aguarde e reinicie os containers (`docker compose restart pedidos estoque pagamentos notificacoes`).
 
@@ -64,10 +69,11 @@ O Kafka possui healthcheck; os serviços de aplicação só iniciam após o Kafk
 
 | Serviço       | Porta | Endpoints |
 |---------------|-------|-----------|
-| Pedidos       | 5001  | `POST /pedidos`, `GET /pedidos/<id>`, `GET /health` |
+| Pedidos       | 5001  | `GET /pedidos`, `POST /pedidos`, `GET /pedidos/<id>`, `GET /health` |
 | Estoque       | 5002  | `GET /estoque`, `GET /health` |
-| Pagamentos    | 5003  | `GET /health` |
-| Notificações  | 5004  | `GET /health` |
+| Pagamentos    | 5003  | `GET /health`, `GET /config`, `POST /config` (simular rejeição) |
+| Notificações  | 5004  | `GET /health`, `GET /notificacoes` |
+| Painel        | 8080  | Interface web; API proxy em `/api/*` e controle Docker em `/api/control/*` |
 
 ## Tópicos Kafka utilizados
 
@@ -77,6 +83,19 @@ O Kafka possui healthcheck; os serviços de aplicação só iniciam após o Kafk
 - `pedidos.confirmados` — Pedidos publica; Notificações consome.
 
 Os tópicos são criados automaticamente na primeira publicação (Kafka com auto-create habilitado).
+
+## Persistência (banco por serviço)
+
+Cada microserviço tem seu **próprio banco SQLite** e um **volume Docker** para persistir dados entre reinicializações:
+
+| Serviço       | Dados persistidos |
+|---------------|-------------------|
+| Pedidos       | Pedidos (orderId, itens, status, etc.) |
+| Estoque       | Inventário (P1, P2, P3) e reservas por pedido |
+| Pagamentos    | Config (simular rejeição) |
+| Notificações  | Últimas 50 notificações enviadas |
+
+Ao desligar e religar um serviço (ex.: Estoque), os dados são recuperados do volume. Para zerar os dados, remova os volumes: `docker compose down -v`.
 
 ## Parar o ambiente
 
