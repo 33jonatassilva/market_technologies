@@ -6,7 +6,9 @@
 ### A ideia veio após me questionarem sobre alguns conceitos e percebi que não sabia de fato como funcionavam.
 ### Dentre eles estão:
 
-#### Mensageria: RabbitMQ e Kafka
+#### Mensageria: RabbitMQ e Kafka  
+- Documentação: [kafka/](kafka/) · [rabbitmq/](rabbitmq/)  
+- **[Comparativo Kafka vs RabbitMQ](COMPARATIVO-KAFKA-RABBITMQ.md)**
 #### Testes: TDD, Testes Unitários, testes de integração.
 #### Kubernetes
 #### Especialização em ferramentas de LOG do .NET: Serilog, OpenTelemetry
