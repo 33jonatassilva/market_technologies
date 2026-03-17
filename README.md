@@ -11,8 +11,11 @@
 - **[Comparativo Kafka vs RabbitMQ](COMPARATIVO-KAFKA-RABBITMQ.md)**
 #### Testes: TDD, Testes Unitários, testes de integração.  
 - Documentação: [testes/](testes/) — conceitos, tipos (unitário, integração, E2E), escopo, tecnologias .NET e exemplos em C#.
+#### Bancos de dados: SQL vs NoSQL  
+- Documentação: [bancos-de-dados/](bancos-de-dados/) — diferenças (modelo, esquema, ACID/BASE, CAP, escala, casos de uso).
 #### Kubernetes
-#### Especialização em ferramentas de LOG do .NET: Serilog, OpenTelemetry
+#### Logs e Monitoramento em .NET: Serilog, OpenTelemetry, Prometheus, Grafana, Elastic Stack
+- Documentação: [logs-e-monitoramento/](logs-e-monitoramento/) — structured logging, traces, métricas, health checks e plataformas de observabilidade.
 
 
 
